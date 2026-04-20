@@ -229,13 +229,13 @@ export default async function handler(req, res) {
     // Send both in parallel
     await Promise.all([
       sendEmail({
-        from: 'Timekia <noreply@inflexiumlabs.com>',
+        from: 'Timekia <noreply@forms.inflexiumlabs.com>',
         to: ['ventas@inflexiumlabs.com'],
         subject: `🔔 Nuevo diagnóstico: ${nombre} — ${empresa}`,
         html: salesHtml,
       }),
       sendEmail({
-        from: 'Timekia <noreply@inflexiumlabs.com>',
+        from: 'Timekia <noreply@forms.inflexiumlabs.com>',
         to: [email],
         reply_to: 'ventas@inflexiumlabs.com',
         subject: `Recibimos tu consulta, ${nombre.split(' ')[0]} — te contactamos pronto`,
