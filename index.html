@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timekia — Control de horario sin fricción</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+<style>
+  /* ============================================================
+     Design System Tokens
+     ============================================================ */
+  :root {
+    --font-sans-product: 'Inter', system-ui, sans-serif;
+    --fs-display: clamp(2.4rem, 6vw, 5rem);
+    --fs-h1: clamp(2rem, 5vw, 3.5rem);
+    --fs-h2: clamp(1.8rem, 4vw, 2.8rem);
+    --lh-tight: 1.1;
+    --lh-snug: 1.2;
+    --tracking-tight: -0.03em;
+    --status-success: #22C55E;
+    --status-danger: #EF4444;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  @keyframes tk-scan {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+  @keyframes tk-pop {
+    0% { transform: scale(.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes tk-blink {
+    0%, 60%, 100% { opacity: 1; }
+    80% { opacity: .25; }
+  }
+  @keyframes tk-fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tk-pain-card { transition: all .2s ease; }
+  .tk-pain-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(245, 131, 31, 0.35) !important;
+  }
+  .tk-env-card { transition: all .25s ease; }
+  .tk-env-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(245, 131, 31, 0.35) !important;
+    box-shadow: 0 16px 40px rgba(0,0,0,.15);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  @media (max-width: 1024px) {
+    .tk-hero-grid { grid-template-columns: 1fr !important; gap: 48px !important; }
+    .tk-pain-grid, .tk-env-grid, .tk-steps-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .tk-env-head { grid-template-columns: 1fr !important; align-items: start !important; }
+    .tk-form-grid { grid-template-columns: 1fr !important; }
+    .tk-steps-line { display: none !important; }
+  }
+  @media (max-width: 640px) {
+    .tk-pain-grid, .tk-env-grid, .tk-steps-grid { grid-template-columns: 1fr !important; }
+  }
+
+  ::selection { background: #F5831F; color: #fff; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- ═══════════════════════════════════════════════
+     KioskAnimated Component
+════════════════════════════════════════════════ -->
+<script type="text/babel">
+// Kiosk with looping animation: idle → scanning → success → reset
+function KioskAnimated({ theme='dark', loop=true }) {
+  const [time, setTime] = React.useState(new Date());
+  const [phase, setPhase] = React.useState('idle');
+  const [employee] = React.useState({name:'Carlos López', role:'Operario · Planta 2'});
+
+  React.useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  React.useEffect(() => {
+    if (!loop) return;
+    let timers = [];
+    const cycle = () => {
+      setPhase('idle');
+      timers.push(setTimeout(() => setPhase('scanning'), 1800));
+      timers.push(setTimeout(() => setPhase('success'), 4200));
+      timers.push(setTimeout(() => cycle(), 7200));
+    };
+    cycle();
+    return () => timers.forEach(clearTimeout);
+  }, [loop]);
+
+  const clock = time.toLocaleTimeString('es-UY', {hour:'2-digit', minute:'2-digit', hour12:false});
+  const date = time.toLocaleDateString('es-UY', {weekday:'long', day:'2-digit', month:'long'});
+  const isDark = theme === 'dark';
+
+  const surface = isDark ? '#0D1117' : '#FFFFFF';
+  const headBg = isDark ? 'rgba(43,111,212,.15)' : 'rgba(43,111,212,.08)';
+  const headBorder = isDark ? 'rgba(43,111,212,.2)' : 'rgba(43,111,212,.18)';
+  const fg = isDark ? '#E8EAF0' : '#0F1117';
+  const fgMuted = isDark ? '#8892A4' : '#6B7280';
+  const ringBase = 'rgba(43,111,212,.05)';
+
+  return (
+    <div style={{
+      width:'100%', height:'100%', background: surface,
+      display:'flex', flexDirection:'column',
+      color: fg, fontFamily:"'Inter',sans-serif",
+      position:'relative', overflow:'hidden'
+    }}>
+      {/* Header */}
+      <div style={{
+        height:'15%', background: headBg,
+        borderBottom:`1px solid ${headBorder}`,
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'0 6%'
+      }}>
+        <div style={{fontWeight:900, color:'#2B6FD4', letterSpacing:'-0.03em', fontSize:'1.5em'}}>
+          time<span style={{color:'#F5831F'}}>kia</span>
+        </div>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontSize:'1.9em', fontWeight:700, fontVariantNumeric:'tabular-nums', lineHeight:1}}>{clock}</div>
+          <div style={{color:fgMuted, fontSize:'.82em', marginTop:4, textTransform:'capitalize'}}>{date}</div>
+        </div>
+      </div>
+
+      {/* Stage */}
+      <div style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'6%', padding:'4%', position:'relative'}}>
+        {phase === 'success' ? (
+          <div key="success" style={{animation:'tk-pop .35s cubic-bezier(.2,.9,.3,1.3)'}}>
+            <div style={{
+              width:96, height:96, borderRadius:'50%',
+              border:'3px solid #22C55E',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:'2.6em', background:'rgba(34,197,94,.12)',
+              margin:'0 auto 18px',
+              boxShadow:'0 0 0 8px rgba(34,197,94,.08)'
+            }}>✓</div>
+            <div style={{textAlign:'center'}}>
+              <div style={{color:'#22C55E', fontWeight:700, fontSize:'.9em', textTransform:'uppercase', letterSpacing:'.12em'}}>Entrada registrada</div>
+              <div style={{color:fg, fontWeight:800, fontSize:'1.4em', margin:'6px 0 2px'}}>{employee.name}</div>
+              <div style={{color:fgMuted, fontSize:'.85em'}}>{employee.role} · {clock}</div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{position:'relative', width:100, height:100}}>
+              <div style={{
+                position:'absolute', inset:0, borderRadius:'50%',
+                border:'3px solid rgba(43,111,212,.6)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                background: ringBase,
+                overflow:'hidden'
+              }}>
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke={isDark?'rgba(43,111,212,.65)':'rgba(43,111,212,.55)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="9" r="3.5"/>
+                  <path d="M5 20c1.2-3.2 4-4.5 7-4.5s5.8 1.3 7 4.5"/>
+                </svg>
+                {phase === 'scanning' && (
+                  <div style={{
+                    position:'absolute', left:0, right:0, top:0, height:'100%',
+                    background:'linear-gradient(180deg, transparent 0%, rgba(43,111,212,.4) 48%, rgba(43,111,212,.6) 50%, rgba(43,111,212,.4) 52%, transparent 100%)',
+                    animation:'tk-scan 1.6s linear infinite'
+                  }}/>
+                )}
+              </div>
+              {phase === 'scanning' && (
+                <>
+                  {['tl','tr','bl','br'].map(pos => {
+                    const base = {position:'absolute', width:14, height:14, borderColor:'#F5831F', borderStyle:'solid'};
+                    const pos2 = {
+                      tl:{top:-8,left:-8,borderWidth:'2px 0 0 2px'},
+                      tr:{top:-8,right:-8,borderWidth:'2px 2px 0 0'},
+                      bl:{bottom:-8,left:-8,borderWidth:'0 0 2px 2px'},
+                      br:{bottom:-8,right:-8,borderWidth:'0 2px 2px 0'}
+                    }[pos];
+                    return <div key={pos} style={{...base,...pos2}}/>
+                  })}
+                </>
+              )}
+            </div>
+            <div style={{color:fgMuted, textAlign:'center', lineHeight:1.4, fontSize:'1em', maxWidth:240}}>
+              {phase === 'scanning'
+                ? <><span style={{color:'#F5831F', fontWeight:700}}>Identificando…</span><br/>mantené la mirada</>
+                : <>Mirá la cámara<br/>para identificarte</>
+              }
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'3%', padding:'0 6%', marginBottom:'6%'}}>
+        {[
+          ['Entrada','linear-gradient(135deg,#16A34A,#22C55E)', '#22C55E'],
+          ['Salida','linear-gradient(135deg,#B91C1C,#EF4444)', '#EF4444'],
+          ['Descanso','linear-gradient(135deg,#1D4ED8,#3B82F6)', '#3B82F6'],
+          ['Retorno','linear-gradient(135deg,#7C3AED,#A855F7)', '#A855F7']
+        ].map(([l,bg,solid],i) => {
+          const isActive = phase==='success' && l==='Entrada';
+          const dimmed = phase==='success' && l!=='Entrada';
+          return (
+            <div key={i} style={{
+              height:32, borderRadius:6, background:bg,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              color:'#fff', fontWeight:700, fontSize:'.88em',
+              opacity: dimmed ? .3 : 1,
+              transform: isActive ? 'scale(1.03)' : 'scale(1)',
+              boxShadow: isActive ? `0 0 0 2px ${solid}, 0 8px 20px ${solid}55` : 'none',
+              transition:'all .3s ease'
+            }}>{l}{isActive ? ' ✓' : ''}</div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        height:'9%',
+        borderTop: isDark ? '1px solid rgba(255,255,255,.06)' : '1px solid rgba(0,0,0,.06)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        color:fgMuted, fontSize:'.72em', letterSpacing:'.1em', textTransform:'uppercase'
+      }}>timekia wall · inflexium labs</div>
+    </div>
+  );
+}
+
+window.KioskAnimated = KioskAnimated;
+</script>
+
+<!-- ═══════════════════════════════════════════════
+     Hero Variants
+════════════════════════════════════════════════ -->
+<script type="text/babel">
+const scrollToForm = (e) => {
+  e && e.preventDefault && e.preventDefault();
+  const el = document.getElementById('agendar');
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+};
+
+function HeroShell({ isDark, children, overlayBg }) {
+  return (
+    <section style={{
+      position:'relative',
+      minHeight:'100vh',
+      display:'flex',
+      flexDirection:'column',
+      justifyContent:'center',
+      padding:'140px 5% 80px',
+      overflow:'hidden',
+      background: isDark ? '#0F1117' : '#FAFAFB',
+      color: isDark ? '#E8EAF0' : '#0F1117'
+    }}>
+      <div style={{position:'absolute', inset:0, background:overlayBg, pointerEvents:'none'}}/>
+      {children}
+    </section>
+  );
+}
+
+// VARIANT A · Split
+function HeroSplit({ isDark, headline }) {
+  const muted = isDark ? '#8892A4' : '#5A6170';
+  const border = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
+  const radialBg = isDark
+    ? 'radial-gradient(ellipse 70% 60% at 20% 30%, rgba(43,111,212,.20) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 85% 70%, rgba(245,131,31,.10) 0%, transparent 60%)'
+    : 'radial-gradient(ellipse 70% 60% at 20% 30%, rgba(43,111,212,.10) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 85% 70%, rgba(245,131,31,.06) 0%, transparent 60%)';
+
+  return (
+    <HeroShell isDark={isDark} overlayBg={radialBg}>
+      <div style={{
+        maxWidth:1320, margin:'0 auto', width:'100%',
+        display:'grid', gridTemplateColumns:'1.15fr 1fr', gap:72, alignItems:'center', position:'relative', zIndex:1
+      }} className="tk-hero-grid">
+        <div>
+          <div style={{
+            display:'inline-flex', alignItems:'center', gap:10,
+            padding:'6px 14px 6px 6px',
+            background: isDark?'rgba(43,111,212,.12)':'rgba(43,111,212,.08)',
+            border:`1px solid ${isDark?'rgba(43,111,212,.28)':'rgba(43,111,212,.22)'}`,
+            borderRadius:100, fontSize:12, fontWeight:700, color:'#2B6FD4',
+            letterSpacing:'.12em', textTransform:'uppercase', marginBottom:28
+          }}>
+            <span style={{
+              width:22, height:22, borderRadius:'50%', background:'#F5831F',
+              display:'inline-flex', alignItems:'center', justifyContent:'center',
+              color:'#fff', fontSize:11
+            }}>◉</span>
+            Partner Oficial Odoo
+          </div>
+
+          <h1 style={{
+            fontSize:'clamp(2.6rem, 5.5vw, 4.6rem)',
+            fontWeight:900, lineHeight:1.02, letterSpacing:'-0.035em',
+            marginBottom:20, maxWidth:720
+          }}>
+            {headline.split('\n').map((line,i) => (
+              <span key={i} style={{display:'block'}}>
+                {line.split('*').map((seg,j) => j%2===1
+                  ? <span key={j} style={{color:'#F5831F'}}>{seg}</span>
+                  : <span key={j}>{seg}</span>
+                )}
+              </span>
+            ))}
+          </h1>
+          <p style={{fontSize:'1.125rem', color:muted, maxWidth:520, marginBottom:36, lineHeight:1.55}}>
+            Reconocimiento facial, anti-fraude y cédula + PIN. Funciona en obra, oficina, fábrica, aula o home office. Aunque se corte internet.
+          </p>
+          <div style={{display:'flex', gap:12, flexWrap:'wrap', marginBottom:48}}>
+            <button onClick={scrollToForm} style={{
+              background:'#F5831F', color:'#fff', padding:'15px 28px',
+              borderRadius:8, fontSize:15, fontWeight:700, border:'none', cursor:'pointer',
+              boxShadow:'0 8px 24px rgba(245,131,31,.35)', display:'inline-flex', alignItems:'center', gap:8
+            }}>Agendar diagnóstico gratis <span>→</span></button>
+            <a href="#como-funciona" style={{
+              background:'transparent', color: isDark?'#E8EAF0':'#0F1117',
+              padding:'15px 24px', borderRadius:8, fontSize:15, fontWeight:600,
+              border:`1px solid ${border}`, textDecoration:'none'
+            }}>Ver cómo funciona</a>
+          </div>
+
+          <div style={{display:'flex', gap:36, alignItems:'center', flexWrap:'wrap'}}>
+            <div>
+              <div style={{fontSize:28, fontWeight:900, letterSpacing:'-.02em'}}>3<span style={{color:'#F5831F'}}>s</span></div>
+              <div style={{fontSize:12, color:muted, textTransform:'uppercase', letterSpacing:'.1em'}}>Por fichaje</div>
+            </div>
+            <div style={{width:1, height:32, background:border}}/>
+            <div>
+              <div style={{fontSize:28, fontWeight:900, letterSpacing:'-.02em'}}>100<span style={{color:'#F5831F'}}>%</span></div>
+              <div style={{fontSize:12, color:muted, textTransform:'uppercase', letterSpacing:'.1em'}}>Offline capable</div>
+            </div>
+            <div style={{width:1, height:32, background:border}}/>
+            <div>
+              <div style={{fontSize:28, fontWeight:900, letterSpacing:'-.02em'}}>0<span style={{color:'#F5831F'}}> fichadas duplicadas</span></div>
+              <div style={{fontSize:12, color:muted, textTransform:'uppercase', letterSpacing:'.1em'}}>Con anti-fraude</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{display:'flex', justifyContent:'center'}}>
+          <TabletShowcase isDark={isDark}/>
+        </div>
+      </div>
+    </HeroShell>
+  );
+}
+
+// VARIANT B · Center-stage
+function HeroCenter({ isDark, headline }) {
+  const muted = isDark ? '#8892A4' : '#5A6170';
+  const border = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
+  const radialBg = isDark
+    ? 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(43,111,212,.22) 0%, transparent 70%)'
+    : 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(43,111,212,.10) 0%, transparent 70%)';
+
+  return (
+    <HeroShell isDark={isDark} overlayBg={radialBg}>
+      <div style={{maxWidth:1200, margin:'0 auto', width:'100%', textAlign:'center', position:'relative', zIndex:1}}>
+        <div style={{
+          display:'inline-flex', alignItems:'center', gap:8,
+          padding:'8px 16px',
+          background: isDark?'rgba(245,131,31,.12)':'rgba(245,131,31,.10)',
+          border:`1px solid rgba(245,131,31,.35)`,
+          borderRadius:100, fontSize:12, fontWeight:700, color:'#F5831F',
+          letterSpacing:'.14em', textTransform:'uppercase', marginBottom:32
+        }}>
+          <span style={{width:6,height:6,borderRadius:'50%',background:'#F5831F',boxShadow:'0 0 8px #F5831F'}}/>
+          Control de horario sin fricción
+        </div>
+
+        <h1 style={{
+          fontSize:'clamp(2.8rem, 7.5vw, 6.4rem)',
+          fontWeight:900, lineHeight:.98, letterSpacing:'-0.04em',
+          maxWidth:1100, margin:'0 auto 24px'
+        }}>
+          {headline.split('\n').map((line,i) => (
+            <span key={i} style={{display:'block'}}>
+              {line.split('*').map((seg,j) => j%2===1
+                ? <span key={j} style={{color:'#F5831F'}}>{seg}</span>
+                : <span key={j}>{seg}</span>
+              )}
+            </span>
+          ))}
+        </h1>
+
+        <p style={{fontSize:'1.2rem', color:muted, maxWidth:620, margin:'0 auto 40px', lineHeight:1.55}}>
+          Una solución de tiempo y asistencia que reemplaza al reloj biométrico, la planilla Excel y los controles manuales. Todo en una tablet.
+        </p>
+
+        <div style={{display:'flex', gap:12, flexWrap:'wrap', justifyContent:'center', marginBottom:64}}>
+          <button onClick={scrollToForm} style={{
+            background:'#F5831F', color:'#fff', padding:'16px 32px',
+            borderRadius:8, fontSize:15, fontWeight:700, border:'none', cursor:'pointer',
+            boxShadow:'0 12px 32px rgba(245,131,31,.4)'
+          }}>Agendar diagnóstico gratis →</button>
+          <a href="#como-funciona" style={{
+            background:'transparent', color: isDark?'#E8EAF0':'#0F1117',
+            padding:'16px 28px', borderRadius:8, fontSize:15, fontWeight:600,
+            border:`1px solid ${border}`, textDecoration:'none'
+          }}>Ver cómo funciona</a>
+        </div>
+
+        <div style={{display:'flex', justifyContent:'center'}}>
+          <TabletShowcase isDark={isDark} scale={.92}/>
+        </div>
+      </div>
+    </HeroShell>
+  );
+}
+
+// VARIANT C · Editorial
+function HeroEditorial({ isDark, headline }) {
+  const muted = isDark ? '#8892A4' : '#5A6170';
+  const border = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
+  const overlay = isDark
+    ? 'linear-gradient(160deg, rgba(245,131,31,.08) 0%, transparent 40%), radial-gradient(ellipse 40% 50% at 95% 90%, rgba(43,111,212,.15) 0%, transparent 70%)'
+    : 'linear-gradient(160deg, rgba(245,131,31,.06) 0%, transparent 40%), radial-gradient(ellipse 40% 50% at 95% 90%, rgba(43,111,212,.08) 0%, transparent 70%)';
+
+  return (
+    <HeroShell isDark={isDark} overlayBg={overlay}>
+      <div style={{
+        position:'absolute', top:'15%', right:'-10%', width:600, height:600,
+        background:'radial-gradient(circle, rgba(245,131,31,.12) 0%, transparent 60%)',
+        filter:'blur(40px)', pointerEvents:'none'
+      }}/>
+
+      <div style={{maxWidth:1400, margin:'0 auto', width:'100%', position:'relative', zIndex:1}}>
+        <div style={{
+          display:'flex', justifyContent:'space-between', alignItems:'flex-end',
+          borderBottom:`1px solid ${border}`, paddingBottom:16, marginBottom:48
+        }}>
+          <div style={{fontSize:11, fontWeight:700, letterSpacing:'.18em', textTransform:'uppercase', color:muted}}>
+            Volumen 01 · Solución de tiempo y asistencia
+          </div>
+          <div style={{fontSize:11, fontWeight:700, letterSpacing:'.18em', textTransform:'uppercase', color:muted}}>
+            Montevideo · 2026
+          </div>
+        </div>
+
+        <div style={{
+          display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:56, alignItems:'start'
+        }} className="tk-hero-grid">
+          <div>
+            <div style={{
+              fontSize:12, fontWeight:800, color:'#F5831F',
+              letterSpacing:'.18em', textTransform:'uppercase', marginBottom:28
+            }}>— El fichaje no debería ser un problema</div>
+
+            <h1 style={{
+              fontSize:'clamp(2.8rem, 7vw, 6rem)',
+              fontWeight:900, lineHeight:.96, letterSpacing:'-0.04em',
+              marginBottom:32
+            }}>
+              {headline.split('\n').map((line,i) => (
+                <span key={i} style={{display:'block'}}>
+                  {line.split('*').map((seg,j) => j%2===1
+                    ? <span key={j} style={{color:'#F5831F'}}>{seg}</span>
+                    : <span key={j}>{seg}</span>
+                  )}
+                </span>
+              ))}
+            </h1>
+
+            <div style={{
+              display:'grid', gridTemplateColumns:'auto 1fr', gap:20, alignItems:'start',
+              padding:'24px 0', borderTop:`1px solid ${border}`, borderBottom:`1px solid ${border}`,
+              marginBottom:32
+            }}>
+              <div style={{
+                fontFamily:'Georgia, serif', fontSize:92, lineHeight:.7, color:'#F5831F',
+                fontWeight:700, marginTop:-4
+              }}>"</div>
+              <p style={{fontSize:'1.15rem', color: isDark?'#E8EAF0':'#0F1117', lineHeight:1.5, margin:0, fontWeight:500}}>
+                Gerentes de RRHH pierden horas por semana conciliando planillas, fichadas duplicadas y faltas que nadie puede explicar. <span style={{color:muted, fontWeight:400}}>Timekia termina con eso en una tablet.</span>
+              </p>
+            </div>
+
+            <div style={{display:'flex', gap:12, flexWrap:'wrap'}}>
+              <button onClick={scrollToForm} style={{
+                background:'#F5831F', color:'#fff', padding:'15px 28px',
+                borderRadius:8, fontSize:15, fontWeight:700, border:'none', cursor:'pointer',
+                boxShadow:'0 8px 24px rgba(245,131,31,.35)'
+              }}>Agendar diagnóstico gratis →</button>
+              <a href="#como-funciona" style={{
+                background:'transparent', color: isDark?'#E8EAF0':'#0F1117',
+                padding:'15px 24px', borderRadius:8, fontSize:15, fontWeight:600,
+                border:`1px solid ${border}`, textDecoration:'none'
+              }}>Ver cómo funciona</a>
+            </div>
+          </div>
+
+          <div>
+            <TabletShowcase isDark={isDark} scale={.85}/>
+            <div style={{marginTop:20, paddingLeft:16, borderLeft:`2px solid #F5831F`}}>
+              <div style={{fontSize:11, fontWeight:800, color:'#F5831F', letterSpacing:'.14em', textTransform:'uppercase', marginBottom:6}}>Fig. 01</div>
+              <div style={{fontSize:13, color:muted, lineHeight:1.5}}>Kiosko Timekia Wall montado en tablet. Reconocimiento facial + anti-fraude activos. Fichaje en 3 segundos.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </HeroShell>
+  );
+}
+
+// Shared: framed kiosk
+function TabletShowcase({ isDark, scale=1 }) {
+  const w = 380 * scale;
+  return (
+    <div style={{display:'inline-flex', flexDirection:'column', alignItems:'center', position:'relative'}}>
+      <div style={{
+        position:'absolute', inset:-40,
+        background:'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(43,111,212,.25), transparent 65%)',
+        filter:'blur(40px)', zIndex:0, pointerEvents:'none'
+      }}/>
+      <div style={{
+        background: isDark ? '#1A1D24' : '#E8EAF0',
+        border: `6px solid ${isDark ? '#2A2F3D' : '#D1D5DB'}`,
+        borderRadius:24,
+        padding:'18px 12px',
+        width: w,
+        boxShadow: isDark
+          ? '0 40px 80px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.06)'
+          : '0 40px 80px rgba(15,17,23,.18), inset 0 1px 0 rgba(255,255,255,.8)',
+        position:'relative', zIndex:1
+      }}>
+        <div style={{
+          position:'absolute', top:'50%', right:-10, transform:'translateY(-50%)',
+          width:4, height:40, borderRadius:2,
+          background: isDark ? '#2A2F3D' : '#D1D5DB'
+        }}/>
+        <div style={{background:'#0D1117', borderRadius:12, overflow:'hidden', aspectRatio:'4/3.2'}}>
+          <KioskAnimated theme="dark" loop={true}/>
+        </div>
+        <div style={{width:36, height:4, borderRadius:2, background: isDark ? '#2A2F3D' : '#D1D5DB', margin:'14px auto 0'}}/>
+      </div>
+      <div style={{
+        marginTop:18, fontSize:11, fontWeight:700,
+        color: isDark?'#8892A4':'#6B7280',
+        textTransform:'uppercase', letterSpacing:'.14em',
+        display:'flex', alignItems:'center', gap:8
+      }}>
+        <span style={{width:6,height:6,borderRadius:'50%',background:'#22C55E',boxShadow:'0 0 8px #22C55E', animation:'tk-blink 2s ease infinite'}}/>
+        En vivo · Timekia Wall
+      </div>
+    </div>
+  );
+}
+
+window.HeroSplit = HeroSplit;
+window.HeroCenter = HeroCenter;
+window.HeroEditorial = HeroEditorial;
+window.TabletShowcase = TabletShowcase;
+</script>
+
+<!-- ═══════════════════════════════════════════════
+     Sections: Nav, PainPoints, Environments, HowItWorks, Form, Footer
+════════════════════════════════════════════════ -->
+<script type="text/babel">
+function TKNav({ isDark, onToggleTheme }) {
+  return (
+    <nav style={{
+      position:'fixed', top:0, left:0, right:0, zIndex:100,
+      display:'flex', alignItems:'center', justifyContent:'space-between',
+      padding:'0 5%', height:72,
+      background: isDark ? 'rgba(15,17,23,.78)' : 'rgba(250,250,251,.82)',
+      backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
+      borderBottom:`1px solid ${isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.07)'}`
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap:44}}>
+        <div style={{fontWeight:900, fontSize:24, letterSpacing:'-0.03em'}}>
+          <span style={{color:'#2B6FD4'}}>time</span><span style={{color:'#F5831F'}}>kia</span>
+        </div>
+        <ul style={{listStyle:'none', display:'flex', gap:32, margin:0, padding:0}}>
+          {[
+            ['#dolor','Problema'],
+            ['#entornos','Entornos'],
+            ['#como-funciona','Cómo funciona'],
+            ['#agendar','Agendar'],
+          ].map(([h,l]) => (
+            <li key={h}><a href={h} style={{
+              color: isDark?'#8892A4':'#5A6170', textDecoration:'none',
+              fontSize:14, fontWeight:500
+            }}>{l}</a></li>
+          ))}
+        </ul>
+      </div>
+      <div style={{display:'flex', alignItems:'center', gap:12}}>
+        <button onClick={onToggleTheme} title="Cambiar tema" style={{
+          width:36, height:36, borderRadius:8,
+          background:'transparent',
+          border:`1px solid ${isDark?'rgba(255,255,255,.12)':'rgba(0,0,0,.12)'}`,
+          color: isDark?'#E8EAF0':'#0F1117',
+          cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center'
+        }}>
+          {isDark ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          )}
+        </button>
+        <a href="#agendar" style={{
+          background:'#F5831F', color:'#fff', padding:'10px 22px',
+          borderRadius:8, fontSize:14, fontWeight:700, textDecoration:'none'
+        }}>Agendar diagnóstico</a>
+      </div>
+    </nav>
+  );
+}
+
+function PainPoints({ isDark }) {
+  const muted = isDark ? '#8892A4' : '#5A6170';
+  const surface = isDark ? '#161B26' : '#FFFFFF';
+  const border = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
+
+  const pains = [
+    {h:'Planilla Excel que nadie actualiza', d:'Fichadas en papel, correcciones a mano, cierre de mes que arranca el día 3. Errores que terminan en nómina.'},
+    {h:'Reloj biométrico que se rompe', d:'Huella no funciona con manos sucias. Tarjetas que se prestan. Equipos viejos que pierden datos cuando se va la luz.'},
+    {h:'Fichaje compartido entre compañeros', d:'"Márcame la entrada que llegué tarde". Sin verificación real, no hay control real. La empresa paga horas que no se trabajaron.'},
+    {h:'Empleados en obra, calle y home office', d:'No hay un solo equipo que funcione en todas partes. Cada sede improvisa. RRHH concilia a mano.'},
+    {h:'Sin internet, sin fichaje', d:'La obra sin wifi, el depósito remoto, el camión. Los sistemas cloud-only dejan de funcionar en el peor momento.'},
+    {h:'Integrar con la nómina es un dolor', d:'Exportar CSVs, copiar a mano, cruzar con turnos. Días perdidos cada mes en trabajo que no agrega valor.'},
+  ];
+
+  return (
+    <section id="dolor" style={{padding:'120px 5% 96px', background: isDark?'#0F1117':'#FAFAFB'}}>
+      <div style={{maxWidth:1200, margin:'0 auto'}}>
+        <div style={{textAlign:'center', marginBottom:64}}>
+          <div style={{fontSize:12, fontWeight:800, color:'#F5831F', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:14}}>
+            El problema real
+          </div>
+          <h2 style={{fontSize:'clamp(2rem, 4vw, 3.2rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-0.025em', margin:'0 auto', maxWidth:900}}>
+            Si alguno de estos dolores te suena,<br/><span style={{color:'#F5831F'}}>ya perdiste dinero este mes.</span>
+          </h2>
+        </div>
+
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:20}} className="tk-pain-grid">
+          {pains.map((p,i) => (
+            <div key={i} style={{
+              background: surface, border:`1px solid ${border}`,
+              borderRadius:16, padding:'28px 26px',
+              cursor:'default'
+            }} className="tk-pain-card">
+              <div style={{
+                width:36, height:36, borderRadius:10,
+                background: isDark?'rgba(239,68,68,.1)':'rgba(239,68,68,.08)',
+                border:'1px solid rgba(239,68,68,.25)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                color:'#EF4444', fontSize:18, fontWeight:800, marginBottom:18
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 9v4M12 17h.01"/>
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>
+                </svg>
+              </div>
+              <h3 style={{fontSize:'1.05rem', fontWeight:800, margin:'0 0 8px', lineHeight:1.3}}>{p.h}</h3>
+              <p style={{fontSize:'.92rem', color:muted, lineHeight:1.55, margin:0}}>{p.d}</p>
+            </div>
+          ))}
+        </div>
+
+        <div style={{textAlign:'center', marginTop:48}}>
+          <a href="#agendar" onClick={(e)=>{e.preventDefault();document.getElementById('agendar').scrollIntoView({behavior:'smooth'})}} style={{
+            display:'inline-flex', alignItems:'center', gap:10,
+            color:'#F5831F', fontSize:15, fontWeight:700, textDecoration:'none',
+            borderBottom:'2px solid #F5831F', paddingBottom:4
+          }}>
+            Contanos tu caso en 15 minutos <span>→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Environments({ isDark }) {
+  const muted = isDark ? '#8892A4' : '#5A6170';
+  const surface = isDark ? '#161B26' : '#FFFFFF';
+  const border = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
+
+  const envs = [
+    {
+      title:'Obra en construcción',
+      desc:'Polvo, guantes, sin wifi. La tablet aguanta y funciona 100% offline. Sincroniza cuando vuelve la señal.',
+      badge:'Sin internet',
+      color:'#F5831F',
+      illustration: (
+        <svg viewBox="0 0 200 120" width="100%" style={{maxWidth:200}}>
+          <defs>
+            <linearGradient id="sky-obra" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stopColor="#F5831F" stopOpacity=".3"/>
+              <stop offset="1" stopColor="#F5831F" stopOpacity="0"/>
+            </linearGradient>
+          </defs>
+          <rect width="200" height="120" fill="url(#sky-obra)"/>
+          <line x1="30" y1="110" x2="30" y2="20" stroke="#F5831F" strokeWidth="3"/>
+          <line x1="30" y1="25" x2="150" y2="25" stroke="#F5831F" strokeWidth="3"/>
+          <line x1="30" y1="20" x2="140" y2="25" stroke="#F5831F" strokeWidth="2"/>
+          <line x1="90" y1="25" x2="90" y2="55" stroke="#F5831F" strokeWidth="1.5" strokeDasharray="2 3"/>
+          <rect x="82" y="55" width="16" height="16" fill="none" stroke="#F5831F" strokeWidth="2"/>
+          <rect x="110" y="55" width="60" height="55" fill="none" stroke={isDark?'#2A2F3D':'#D1D5DB'} strokeWidth="1.5"/>
+          <line x1="110" y1="75" x2="170" y2="75" stroke={isDark?'#2A2F3D':'#D1D5DB'} strokeWidth="1"/>
+          <line x1="110" y1="95" x2="170" y2="95" stroke={isDark?'#2A2F3D':'#D1D5DB'} strokeWidth="1"/>
+          <line x1="130" y1="55" x2="130" y2="110" stroke={isDark?'#2A2F3D':'#D1D5DB'} strokeWidth="1"/>
+          <line x1="150" y1="55" x2="150" y2="110" stroke={isDark?'#2A2F3D':'#D1D5DB'} strokeWidth="1"/>
+          <line x1="0" y1="110" x2="200" y2="110" stroke={isDark?'#2A2F3D':'#9B9B9B'} strokeWidth="2"/>
+        </svg>
+      )
+    },
+    {
+      title:'Fábrica y planta',
+      desc:'Turnos rotativos, timbre automático, control de descansos. Cuatro botones grandes que cualquier operario domina en segundos.',
+      badge:'Turnos 24/7',
+      color:'#2B6FD4',
+      illustration: (
+        <svg viewBox="0 0 200 120" width="100%" style={{maxWidth:200}}>
+          <rect x="20" y="70" width="30" height="40" fill="none" stroke="#2B6FD4" strokeWidth="2"/>
+          <polygon points="20,70 35,55 50,70" fill="none" stroke="#2B6FD4" strokeWidth="2"/>
+          <line x1="30" y1="55" x2="30" y2="45" stroke="#2B6FD4" strokeWidth="2"/>
+          <circle cx="30" cy="42" r="3" fill="#2B6FD4" opacity=".4"/>
+          <circle cx="30" cy="36" r="4" fill="#2B6FD4" opacity=".2"/>
+          <rect x="60" y="55" width="40" height="55" fill="none" stroke="#2B6FD4" strokeWidth="2"/>
+          <polygon points="60,55 80,40 100,55" fill="none" stroke="#2B6FD4" strokeWidth="2"/>
+          <line x1="75" y1="48" x2="75" y2="38" stroke="#2B6FD4" strokeWidth="2"/>
+          <circle cx="75" cy="34" r="3.5" fill="#2B6FD4" opacity=".4"/>
+          <circle cx="75" cy="27" r="4.5" fill="#2B6FD4" opacity=".2"/>
+          <rect x="110" y="60" width="35" height="50" fill="none" stroke="#2B6FD4" strokeWidth="2"/>
+          <polygon points="110,60 127,45 144,60" fill="none" stroke="#2B6FD4" strokeWidth="2"/>
+          <line x1="155" y1="95" x2="195" y2="95" stroke="#F5831F" strokeWidth="3"/>
+          <circle cx="160" cy="95" r="3" fill="#F5831F"/>
+          <circle cx="175" cy="95" r="3" fill="#F5831F"/>
+          <circle cx="190" cy="95" r="3" fill="#F5831F"/>
+          <line x1="0" y1="110" x2="200" y2="110" stroke={isDark?'#2A2F3D':'#9B9B9B'} strokeWidth="2"/>
+        </svg>
+      )
+    },
+    {
+      title:'Oficina y corporate',
+      desc:'Recepción con tablet elegante. Fichaje sin contacto, sin filas, sin sensación de "reloj de fichar". Integra con directorio corporativo.',
+      badge:'Sin contacto',
+      color:'#A855F7',
+      illustration: (
+        <svg viewBox="0 0 200 120" width="100%" style={{maxWidth:200}}>
+          <rect x="20" y="40" width="160" height="70" fill="none" stroke="#A855F7" strokeWidth="2"/>
+          {[0,1,2,3,4].map(c => [0,1].map(r => (
+            <rect key={c+'-'+r} x={28+c*30} y={48+r*28} width="22" height="20" fill="none" stroke="#A855F7" strokeWidth="1" opacity=".6"/>
+          )))}
+          <rect x="92" y="85" width="16" height="25" fill="#A855F7" opacity=".2"/>
+          <circle cx="105" cy="98" r="1.5" fill="#F5831F"/>
+          <line x1="0" y1="110" x2="200" y2="110" stroke={isDark?'#2A2F3D':'#9B9B9B'} strokeWidth="2"/>
+        </svg>
+      )
+    },
+    {
+      title:'Home office y remoto',
+      desc:'Fichaje desde el móvil con geolocalización opcional. El colaborador marca entrada desde casa, el cliente, o la cafetería.',
+      badge:'App móvil',
+      color:'#22C55E',
+      illustration: (
+        <svg viewBox="0 0 200 120" width="100%" style={{maxWidth:200}}>
+          <polygon points="40,60 80,30 120,60" fill="none" stroke="#22C55E" strokeWidth="2"/>
+          <rect x="50" y="60" width="60" height="50" fill="none" stroke="#22C55E" strokeWidth="2"/>
+          <rect x="72" y="80" width="16" height="30" fill="#22C55E" opacity=".2"/>
+          <rect x="58" y="70" width="10" height="10" fill="none" stroke="#22C55E" strokeWidth="1"/>
+          <rect x="92" y="70" width="10" height="10" fill="none" stroke="#22C55E" strokeWidth="1"/>
+          <rect x="140" y="35" width="40" height="70" rx="6" fill="none" stroke="#F5831F" strokeWidth="2.5"/>
+          <circle cx="160" cy="65" r="10" fill="none" stroke="#F5831F" strokeWidth="1.5"/>
+          <circle cx="156" cy="63" r="1" fill="#F5831F"/>
+          <circle cx="164" cy="63" r="1" fill="#F5831F"/>
+          <path d="M156 69 Q160 72 164 69" fill="none" stroke="#F5831F" strokeWidth="1.5"/>
+          <path d="M130 55 q0 -8 -5 -10" fill="none" stroke="#F5831F" strokeWidth="1.5" opacity=".6"/>
+          <path d="M132 60 q0 -12 -8 -14" fill="none" stroke="#F5831F" strokeWidth="1.5" opacity=".3"/>
+          <line x1="0" y1="110" x2="200" y2="110" stroke={isDark?'#2A2F3D':'#9B9B9B'} strokeWidth="2"/>
+        </svg>
+      )
+    },
+    {
+      title:'En la calle y vehículos',
+      desc:'Repartidores, técnicos de campo, equipos de mantenimiento. Fichaje por QR o facial desde el móvil con sello de ubicación.',
+      badge:'GPS opcional',
+      color:'#3B82F6',
+      illustration: (
+        <svg viewBox="0 0 200 120" width="100%" style={{maxWidth:200}}>
+          <rect x="30" y="60" width="110" height="40" fill="none" stroke="#3B82F6" strokeWidth="2"/>
+          <rect x="100" y="70" width="30" height="20" fill="none" stroke="#3B82F6" strokeWidth="1.5"/>
+          <circle cx="55" cy="100" r="10" fill="none" stroke="#3B82F6" strokeWidth="2"/>
+          <circle cx="55" cy="100" r="3" fill="#3B82F6"/>
+          <circle cx="125" cy="100" r="10" fill="none" stroke="#3B82F6" strokeWidth="2"/>
+          <circle cx="125" cy="100" r="3" fill="#3B82F6"/>
+          <path d="M160 25 C 166 25, 170 29, 170 35 C 170 42, 160 55, 160 55 C 160 55, 150 42, 150 35 C 150 29, 154 25, 160 25 Z" fill="#F5831F" opacity=".3" stroke="#F5831F" strokeWidth="2"/>
+          <circle cx="160" cy="35" r="3" fill="#F5831F"/>
+          <line x1="10" y1="72" x2="25" y2="72" stroke="#3B82F6" strokeWidth="2" opacity=".5"/>
+          <line x1="5" y1="82" x2="22" y2="82" stroke="#3B82F6" strokeWidth="2" opacity=".3"/>
+          <line x1="0" y1="110" x2="200" y2="110" stroke={isDark?'#2A2F3D':'#9B9B9B'} strokeWidth="2" strokeDasharray="6 4"/>
+        </svg>
+      )
+    },
+    {
+      title:'Aula y educación',
+      desc:'Docentes, administrativos, personal de apoyo. PIN para quienes no quieran facial, cédula para suplentes, todo en un solo kiosko.',
+      badge:'Múltiples métodos',
+      color:'#EC4899',
+      illustration: (
+        <svg viewBox="0 0 200 120" width="100%" style={{maxWidth:200}}>
+          <rect x="30" y="30" width="140" height="55" fill={isDark?'#161B26':'#F8F5F0'} stroke="#EC4899" strokeWidth="2"/>
+          <line x1="50" y1="45" x2="90" y2="45" stroke="#EC4899" strokeWidth="1.5" opacity=".7"/>
+          <line x1="50" y1="55" x2="110" y2="55" stroke="#EC4899" strokeWidth="1.5" opacity=".7"/>
+          <line x1="50" y1="65" x2="80" y2="65" stroke="#EC4899" strokeWidth="1.5" opacity=".7"/>
+          <circle cx="140" cy="55" r="12" fill="none" stroke="#F5831F" strokeWidth="2"/>
+          <text x="140" y="60" fontSize="14" fontWeight="900" fill="#F5831F" textAnchor="middle">A+</text>
+          <rect x="30" y="95" width="30" height="10" fill="none" stroke="#EC4899" strokeWidth="1.5"/>
+          <rect x="70" y="95" width="30" height="10" fill="none" stroke="#EC4899" strokeWidth="1.5"/>
+          <rect x="110" y="95" width="30" height="10" fill="none" stroke="#EC4899" strokeWidth="1.5"/>
+          <rect x="150" y="95" width="20" height="10" fill="none" stroke="#EC4899" strokeWidth="1.5"/>
+          <line x1="0" y1="110" x2="200" y2="110" stroke={isDark?'#2A2F3D':'#9B9B9B'} strokeWidth="2"/>
+        </svg>
+      )
+    },
+  ];
+
+  return (
+    <section id="entornos" style={{padding:'120px 5% 96px', background: isDark?'#0B0D13':'#F3F3F5', position:'relative'}}>
+      <div style={{
+        position:'absolute', inset:0,
+        background: isDark
+          ? 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(245,131,31,.08) 0%, transparent 70%)'
+          : 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(245,131,31,.05) 0%, transparent 70%)',
+        pointerEvents:'none'
+      }}/>
+      <div style={{maxWidth:1280, margin:'0 auto', position:'relative'}}>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1.2fr', gap:48, alignItems:'end', marginBottom:64}} className="tk-env-head">
+          <div>
+            <div style={{fontSize:12, fontWeight:800, color:'#F5831F', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:14}}>
+              Adaptable a cualquier entorno
+            </div>
+            <h2 style={{fontSize:'clamp(2rem, 4vw, 3.2rem)', fontWeight:900, lineHeight:1.05, letterSpacing:'-0.025em', margin:0}}>
+              Tu gente no<br/>ficha en un solo lugar.<br/>
+              <span style={{color:'#F5831F'}}>Timekia tampoco.</span>
+            </h2>
+          </div>
+          <p style={{fontSize:'1.1rem', color:muted, lineHeight:1.55, maxWidth:540, margin:0}}>
+            Una misma plataforma en obra, fábrica, oficina, aula, en la calle o home office. Facial, QR, cédula + PIN o app móvil — el método correcto para cada contexto, sin equipos distintos para cada sede.
+          </p>
+        </div>
+
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:20}} className="tk-env-grid">
+          {envs.map((e,i) => (
+            <div key={i} style={{
+              background: surface, border:`1px solid ${border}`,
+              borderRadius:20, padding:'28px 28px 32px',
+              display:'flex', flexDirection:'column', gap:16,
+              position:'relative', overflow:'hidden',
+              cursor:'default'
+            }} className="tk-env-card">
+              <div style={{
+                aspectRatio:'200/120',
+                background: isDark?'#0F1117':'#FAFAFB',
+                borderRadius:12, border:`1px solid ${border}`,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                padding:'12px 18px'
+              }}>
+                {e.illustration}
+              </div>
+
+              <div style={{display:'flex', alignItems:'center', gap:8, marginTop:4}}>
+                <span style={{
+                  width:8, height:8, borderRadius:'50%', background:e.color,
+                  boxShadow:`0 0 10px ${e.color}`
+                }}/>
+                <span style={{
+                  fontSize:11, fontWeight:800, color:e.color,
+                  letterSpacing:'.14em', textTransform:'uppercase'
+                }}>{e.badge}</span>
+              </div>
+              <h3 style={{fontSize:'1.25rem', fontWeight:800, margin:0, lineHeight:1.2}}>{e.title}</h3>
+              <p style={{fontSize:'.92rem', color:muted, lineHeight:1.55, margin:0}}>{e.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HowItWorks({ isDark }) {
+  const muted = isDark ? '#8892A4' : '#5A6170';
+  const border = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
+  const steps = [
+    {n:'01', t:'Montás la tablet', d:'En cualquier pared, mostrador o monitor. Enchufás y listo.', accent:'#2B6FD4'},
+    {n:'02', t:'Tu gente ficha en 3 segundos', d:'Facial, cédula+PIN, QR o app móvil. El método que prefieran.', accent:'#F5831F'},
+    {n:'03', t:'RRHH cierra el mes tranquilo', d:'Datos limpios, sincronizados con Odoo. Sin conciliación manual.', accent:'#22C55E'},
+  ];
+
+  return (
+    <section id="como-funciona" style={{padding:'120px 5% 96px', background: isDark?'#0F1117':'#FAFAFB'}}>
+      <div style={{maxWidth:1200, margin:'0 auto'}}>
+        <div style={{textAlign:'center', marginBottom:72}}>
+          <div style={{fontSize:12, fontWeight:800, color:'#F5831F', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:14}}>
+            Tres pasos. Sin capacitación. Sin fricción.
+          </div>
+          <h2 style={{fontSize:'clamp(2rem, 4vw, 3.2rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-0.025em', margin:'0 auto', maxWidth:800}}>
+            De cero a fichaje funcionando<br/>en un día.
+          </h2>
+        </div>
+
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:28, position:'relative'}} className="tk-steps-grid">
+          <div style={{
+            position:'absolute', top:'40px', left:'16%', right:'16%', height:2,
+            background: `repeating-linear-gradient(90deg, ${border} 0 6px, transparent 6px 12px)`,
+            zIndex:0
+          }} className="tk-steps-line"/>
+
+          {steps.map((s,i) => (
+            <div key={i} style={{position:'relative', zIndex:1, textAlign:'center'}}>
+              <div style={{
+                width:80, height:80, borderRadius:'50%',
+                background: isDark?'#0F1117':'#FAFAFB',
+                border:`2px solid ${s.accent}`,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:22, fontWeight:900, color:s.accent,
+                margin:'0 auto 24px',
+                boxShadow:`0 0 0 8px ${isDark?'#0F1117':'#FAFAFB'}, 0 8px 24px ${s.accent}33`,
+                letterSpacing:'-.02em'
+              }}>{s.n}</div>
+              <h3 style={{fontSize:'1.35rem', fontWeight:800, margin:'0 0 10px', lineHeight:1.25}}>{s.t}</h3>
+              <p style={{fontSize:'1rem', color:muted, lineHeight:1.55, margin:'0 auto', maxWidth:300}}>{s.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AgendarForm({ isDark }) {
+  const [step, setStep] = React.useState(0);
+  const [data, setData] = React.useState({
+    dolor: '', empleados: '', entornos: [],
+    nombre: '', empresa: '', email: '', telefono: ''
+  });
+  const [submitted, setSubmitted] = React.useState(false);
+
+  const muted = isDark ? '#8892A4' : '#5A6170';
+  const surface = isDark ? '#161B26' : '#FFFFFF';
+  const border = isDark ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.10)';
+  const inputBg = isDark ? '#0F1117' : '#F8F8FA';
+
+  const dolores = [
+    'Planilla Excel que nadie actualiza',
+    'Reloj biométrico que se rompe',
+    'Fichajes compartidos (fraude)',
+    'Empleados repartidos en varios lugares',
+    'Se corta internet y se cae el sistema',
+    'Conciliar con nómina me lleva días',
+    'Otro motivo',
+  ];
+
+  const tamaños = ['< 20', '20 – 100', '100 – 500', '500+'];
+  const entornosOpts = ['Obra','Fábrica','Oficina','Aula','Home office','Calle / vehículos'];
+
+  const toggleEntorno = (v) => {
+    setData(d => ({...d, entornos: d.entornos.includes(v) ? d.entornos.filter(x=>x!==v) : [...d.entornos, v]}));
+  };
+
+  const canNext = () => {
+    if (step===0) return !!data.dolor;
+    if (step===1) return !!data.empleados && data.entornos.length>0;
+    if (step===2) return data.nombre && data.empresa && data.email;
+    return false;
+  };
+
+  return (
+    <section id="agendar" style={{
+      padding:'120px 5% 120px',
+      background: isDark ? '#0B0D13' : '#F3F3F5',
+      position:'relative', overflow:'hidden'
+    }}>
+      <div style={{
+        position:'absolute', inset:0,
+        background:'linear-gradient(135deg, rgba(43,111,212,.08), rgba(245,131,31,.06))',
+        pointerEvents:'none'
+      }}/>
+      <div style={{maxWidth:1100, margin:'0 auto', position:'relative', display:'grid', gridTemplateColumns:'1fr 1.1fr', gap:56, alignItems:'start'}} className="tk-form-grid">
+        {/* Left: pitch */}
+        <div style={{paddingTop:20}}>
+          <div style={{fontSize:12, fontWeight:800, color:'#F5831F', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:14}}>
+            Agendar diagnóstico gratis
+          </div>
+          <h2 style={{fontSize:'clamp(1.8rem, 3.5vw, 2.6rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-0.025em', marginBottom:20}}>
+            15 minutos. Sin compromiso.<br/><span style={{color:'#F5831F'}}>Salí con un diagnóstico real.</span>
+          </h2>
+          <p style={{fontSize:'1.05rem', color:muted, lineHeight:1.6, marginBottom:28}}>
+            Contanos cómo fichan hoy, en qué entornos trabajan y dónde te duele más. En una reunión corta te mostramos cómo resolverlo con Timekia, cuánto cuesta y cuánto ahorra.
+          </p>
+
+          <ul style={{listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:14}}>
+            {[
+              'Revisamos tu proceso actual de fichaje',
+              'Identificamos dónde se pierde tiempo y dinero',
+              'Te mostramos el kiosko en vivo',
+              'Propuesta con precio y plazo concretos',
+            ].map((l,i) => (
+              <li key={i} style={{display:'flex', gap:12, alignItems:'flex-start'}}>
+                <div style={{
+                  flexShrink:0, width:22, height:22, borderRadius:'50%',
+                  background:'#22C55E', color:'#fff',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:12, fontWeight:900
+                }}>✓</div>
+                <span style={{fontSize:'.98rem', lineHeight:1.5}}>{l}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div style={{
+            marginTop:36, padding:'16px 20px',
+            background: isDark?'rgba(43,111,212,.08)':'rgba(43,111,212,.06)',
+            borderLeft:'3px solid #2B6FD4', borderRadius:'4px 8px 8px 4px'
+          }}>
+            <div style={{fontSize:12, fontWeight:800, color:'#2B6FD4', letterSpacing:'.12em', textTransform:'uppercase', marginBottom:4}}>Partner Oficial Odoo</div>
+            <div style={{fontSize:'.92rem', color:muted, lineHeight:1.5}}>Timekia integra nativamente con Odoo RRHH y nómina. Si ya usás Odoo, la puesta en marcha es aún más rápida.</div>
+          </div>
+        </div>
+
+        {/* Right: multistep form */}
+        <div style={{
+          background: surface,
+          border:`1px solid ${border}`,
+          borderRadius:20,
+          padding:'36px 36px 32px',
+          boxShadow: isDark?'0 40px 80px rgba(0,0,0,.5)':'0 40px 80px rgba(15,17,23,.12)'
+        }}>
+          {submitted ? (
+            <div style={{textAlign:'center', padding:'40px 0'}}>
+              <div style={{
+                width:72, height:72, borderRadius:'50%',
+                background:'rgba(34,197,94,.15)', border:'2px solid #22C55E',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:32, color:'#22C55E', margin:'0 auto 24px'
+              }}>✓</div>
+              <h3 style={{fontSize:'1.4rem', fontWeight:800, margin:'0 0 12px'}}>Listo, {data.nombre.split(' ')[0]}.</h3>
+              <p style={{color:muted, lineHeight:1.6, margin:'0 auto 24px', maxWidth:400}}>
+                Te escribimos a <strong style={{color:isDark?'#E8EAF0':'#0F1117'}}>{data.email}</strong> en menos de 2 horas hábiles con un link para agendar los 15 minutos.
+              </p>
+              <button onClick={()=>{setSubmitted(false);setStep(0);setData({dolor:'',empleados:'',entornos:[],nombre:'',empresa:'',email:'',telefono:''})}} style={{
+                background:'transparent', border:`1px solid ${border}`, color:muted,
+                padding:'10px 20px', borderRadius:8, fontSize:13, fontWeight:600, cursor:'pointer'
+              }}>Enviar otra consulta</button>
+            </div>
+          ) : (
+            <>
+              {/* Progress bar */}
+              <div style={{display:'flex', gap:8, marginBottom:28}}>
+                {[0,1,2].map(i => (
+                  <div key={i} style={{
+                    flex:1, height:4, borderRadius:2,
+                    background: i<=step ? '#F5831F' : border,
+                    transition:'all .3s ease'
+                  }}/>
+                ))}
+              </div>
+
+              <div style={{fontSize:12, fontWeight:700, color:'#F5831F', letterSpacing:'.14em', textTransform:'uppercase', marginBottom:6}}>
+                Paso {step+1} de 3
+              </div>
+
+              {step===0 && (
+                <>
+                  <h3 style={{fontSize:'1.35rem', fontWeight:800, margin:'0 0 20px', lineHeight:1.3}}>¿Qué te está doliendo hoy?</h3>
+                  <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:28}}>
+                    {dolores.map(d => (
+                      <button key={d} type="button" onClick={()=>setData({...data, dolor:d})} style={{
+                        textAlign:'left', padding:'12px 16px',
+                        background: data.dolor===d ? (isDark?'rgba(245,131,31,.12)':'rgba(245,131,31,.08)') : inputBg,
+                        border:`1px solid ${data.dolor===d ? '#F5831F' : border}`,
+                        borderRadius:10, color: isDark?'#E8EAF0':'#0F1117',
+                        fontSize:14, fontWeight:500, cursor:'pointer',
+                        transition:'all .15s ease',
+                        display:'flex', alignItems:'center', gap:12
+                      }}>
+                        <span style={{
+                          width:16, height:16, borderRadius:'50%',
+                          border:`2px solid ${data.dolor===d ? '#F5831F' : border}`,
+                          background: data.dolor===d ? '#F5831F' : 'transparent',
+                          flexShrink:0
+                        }}/>
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {step===1 && (
+                <>
+                  <h3 style={{fontSize:'1.35rem', fontWeight:800, margin:'0 0 20px', lineHeight:1.3}}>Contanos de tu equipo</h3>
+                  <div style={{marginBottom:20}}>
+                    <label style={{fontSize:12, fontWeight:700, color:muted, textTransform:'uppercase', letterSpacing:'.1em', display:'block', marginBottom:10}}>Cantidad de empleados</label>
+                    <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8}}>
+                      {tamaños.map(t => (
+                        <button key={t} type="button" onClick={()=>setData({...data, empleados:t})} style={{
+                          padding:'12px 8px',
+                          background: data.empleados===t ? (isDark?'rgba(245,131,31,.12)':'rgba(245,131,31,.08)') : inputBg,
+                          border:`1px solid ${data.empleados===t ? '#F5831F' : border}`,
+                          borderRadius:10, color: isDark?'#E8EAF0':'#0F1117',
+                          fontSize:14, fontWeight:700, cursor:'pointer'
+                        }}>{t}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{marginBottom:28}}>
+                    <label style={{fontSize:12, fontWeight:700, color:muted, textTransform:'uppercase', letterSpacing:'.1em', display:'block', marginBottom:10}}>¿En qué entornos trabajan?</label>
+                    <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
+                      {entornosOpts.map(e => (
+                        <button key={e} type="button" onClick={()=>toggleEntorno(e)} style={{
+                          padding:'10px 16px',
+                          background: data.entornos.includes(e) ? (isDark?'rgba(245,131,31,.12)':'rgba(245,131,31,.08)') : inputBg,
+                          border:`1px solid ${data.entornos.includes(e) ? '#F5831F' : border}`,
+                          borderRadius:100, color: isDark?'#E8EAF0':'#0F1117',
+                          fontSize:13, fontWeight:600, cursor:'pointer',
+                          display:'inline-flex', alignItems:'center', gap:6
+                        }}>
+                          {data.entornos.includes(e) && <span style={{color:'#F5831F'}}>✓</span>}
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {step===2 && (
+                <>
+                  <h3 style={{fontSize:'1.35rem', fontWeight:800, margin:'0 0 20px', lineHeight:1.3}}>¿Cómo te contactamos?</h3>
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12}}>
+                    <FormField label="Nombre" value={data.nombre} onChange={v=>setData({...data,nombre:v})} isDark={isDark} inputBg={inputBg} border={border} muted={muted}/>
+                    <FormField label="Empresa" value={data.empresa} onChange={v=>setData({...data,empresa:v})} isDark={isDark} inputBg={inputBg} border={border} muted={muted}/>
+                  </div>
+                  <FormField label="Email corporativo" type="email" value={data.email} onChange={v=>setData({...data,email:v})} isDark={isDark} inputBg={inputBg} border={border} muted={muted}/>
+                  <div style={{height:12}}/>
+                  <FormField label="Teléfono (opcional)" value={data.telefono} onChange={v=>setData({...data,telefono:v})} isDark={isDark} inputBg={inputBg} border={border} muted={muted}/>
+                </>
+              )}
+
+              <div style={{display:'flex', gap:10, marginTop:28}}>
+                {step>0 && (
+                  <button onClick={()=>setStep(s=>s-1)} style={{
+                    background:'transparent', color:muted,
+                    border:`1px solid ${border}`, padding:'14px 20px',
+                    borderRadius:8, fontSize:14, fontWeight:600, cursor:'pointer'
+                  }}>← Atrás</button>
+                )}
+                {step<2 ? (
+                  <button onClick={()=>setStep(s=>s+1)} disabled={!canNext()} style={{
+                    flex:1, background: canNext()?'#F5831F':'rgba(245,131,31,.3)',
+                    color:'#fff', border:'none', padding:'14px 20px',
+                    borderRadius:8, fontSize:14, fontWeight:700,
+                    cursor: canNext()?'pointer':'not-allowed',
+                    transition:'all .15s ease'
+                  }}>Siguiente →</button>
+                ) : (
+                  <button onClick={()=>setSubmitted(true)} disabled={!canNext()} style={{
+                    flex:1, background: canNext()?'#F5831F':'rgba(245,131,31,.3)',
+                    color:'#fff', border:'none', padding:'14px 20px',
+                    borderRadius:8, fontSize:14, fontWeight:700,
+                    cursor: canNext()?'pointer':'not-allowed',
+                    boxShadow: canNext()?'0 8px 24px rgba(245,131,31,.35)':'none'
+                  }}>Agendar mi diagnóstico</button>
+                )}
+              </div>
+
+              <div style={{marginTop:16, fontSize:12, color:muted, textAlign:'center'}}>
+                Sin spam. Respondemos en menos de 2 horas hábiles.
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FormField({ label, value, onChange, type='text', isDark, inputBg, border, muted }) {
+  return (
+    <label style={{display:'block'}}>
+      <div style={{fontSize:11, fontWeight:700, color:muted, textTransform:'uppercase', letterSpacing:'.1em', marginBottom:6}}>{label}</div>
+      <input type={type} value={value} onChange={e=>onChange(e.target.value)} style={{
+        width:'100%', padding:'12px 14px',
+        background:inputBg,
+        border:`1px solid ${border}`,
+        borderRadius:10,
+        color: isDark?'#E8EAF0':'#0F1117',
+        fontSize:14, fontFamily:'inherit',
+        outline:'none', boxSizing:'border-box'
+      }} onFocus={e=>e.target.style.borderColor='#F5831F'} onBlur={e=>e.target.style.borderColor=border}/>
+    </label>
+  );
+}
+
+function Footer({ isDark }) {
+  const muted = isDark ? '#8892A4' : '#5A6170';
+  const border = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
+  return (
+    <footer style={{padding:'48px 5%', background: isDark?'#0F1117':'#FAFAFB', borderTop:`1px solid ${border}`}}>
+      <div style={{maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:20}}>
+        <div>
+          <div style={{fontWeight:900, fontSize:20, letterSpacing:'-0.03em', marginBottom:4}}>
+            <span style={{color:'#2B6FD4'}}>time</span><span style={{color:'#F5831F'}}>kia</span>
+          </div>
+          <div style={{fontSize:12, color:muted}}>Un producto de InflexiumLabs · Partner Oficial Odoo</div>
+        </div>
+        <div style={{fontSize:12, color:muted}}>© 2026 InflexiumLabs. Montevideo, Uruguay.</div>
+      </div>
+    </footer>
+  );
+}
+
+window.TKNav = TKNav;
+window.PainPoints = PainPoints;
+window.Environments = Environments;
+window.HowItWorks = HowItWorks;
+window.AgendarForm = AgendarForm;
+window.Footer = Footer;
+</script>
+
+<!-- ═══════════════════════════════════════════════
+     Tweaks Panel
+════════════════════════════════════════════════ -->
+<script type="text/babel">
+function TweaksPanel({ variant, setVariant, headline, setHeadline, isDark, setIsDark, visible }) {
+  if (!visible) return null;
+
+  const variants = [
+    {id:'split', label:'A · Split', desc:'Headline izq + kiosko der'},
+    {id:'center', label:'B · Center', desc:'Headline gigante centrado'},
+    {id:'editorial', label:'C · Editorial', desc:'Estilo magazine'},
+  ];
+
+  const headlinePresets = [
+    'Fichaje facial *inteligente*\npara tu organización',
+    'Control de horario\nque *funciona en cualquier lugar*.',
+    'El tiempo de tu gente,\nmedido *sin fricción*.',
+    'Una tablet.\nTodos tus fichajes.\n*Cero fraude*.',
+    'Reemplazá la planilla Excel\npor algo *que sí funcione*.',
+  ];
+
+  return (
+    <div style={{
+      position:'fixed', bottom:20, right:20, zIndex:200,
+      width:320,
+      background: isDark?'rgba(22,27,38,.95)':'rgba(255,255,255,.98)',
+      border:`1px solid ${isDark?'rgba(255,255,255,.12)':'rgba(0,0,0,.12)'}`,
+      borderRadius:16,
+      boxShadow:'0 24px 60px rgba(0,0,0,.35)',
+      backdropFilter:'blur(20px)',
+      color: isDark?'#E8EAF0':'#0F1117',
+      fontFamily:"'Inter',sans-serif",
+      overflow:'hidden'
+    }}>
+      <div style={{
+        padding:'14px 18px',
+        borderBottom:`1px solid ${isDark?'rgba(255,255,255,.08)':'rgba(0,0,0,.08)'}`,
+        display:'flex', alignItems:'center', justifyContent:'space-between'
+      }}>
+        <div style={{fontSize:12, fontWeight:800, letterSpacing:'.12em', textTransform:'uppercase', color:'#F5831F'}}>Tweaks</div>
+        <div style={{fontSize:11, color:isDark?'#8892A4':'#6B7280'}}>Timekia landing</div>
+      </div>
+
+      <div style={{padding:'16px 18px', display:'flex', flexDirection:'column', gap:18, maxHeight:'70vh', overflowY:'auto'}}>
+        <div>
+          <div style={{fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:isDark?'#8892A4':'#6B7280', marginBottom:8}}>Tema</div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:6}}>
+            {[['dark','Dark'],['light','Light']].map(([v,l]) => (
+              <button key={v} onClick={()=>setIsDark(v==='dark')} style={{
+                padding:'10px', fontSize:12, fontWeight:700,
+                background: (isDark?v==='dark':v==='light') ? '#F5831F' : 'transparent',
+                color: (isDark?v==='dark':v==='light') ? '#fff' : (isDark?'#E8EAF0':'#0F1117'),
+                border:`1px solid ${(isDark?v==='dark':v==='light')?'#F5831F':(isDark?'rgba(255,255,255,.12)':'rgba(0,0,0,.12)')}`,
+                borderRadius:8, cursor:'pointer'
+              }}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={{fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:isDark?'#8892A4':'#6B7280', marginBottom:8}}>Hero variant</div>
+          <div style={{display:'flex', flexDirection:'column', gap:6}}>
+            {variants.map(v => (
+              <button key={v.id} onClick={()=>setVariant(v.id)} style={{
+                textAlign:'left', padding:'10px 12px',
+                background: variant===v.id ? (isDark?'rgba(245,131,31,.15)':'rgba(245,131,31,.1)') : 'transparent',
+                border:`1px solid ${variant===v.id?'#F5831F':(isDark?'rgba(255,255,255,.1)':'rgba(0,0,0,.1)')}`,
+                borderRadius:8, cursor:'pointer',
+                color: isDark?'#E8EAF0':'#0F1117'
+              }}>
+                <div style={{fontSize:13, fontWeight:700}}>{v.label}</div>
+                <div style={{fontSize:11, color:isDark?'#8892A4':'#6B7280', marginTop:2}}>{v.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={{fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:isDark?'#8892A4':'#6B7280', marginBottom:8}}>Headline</div>
+          <textarea value={headline} onChange={e=>setHeadline(e.target.value)} rows={3} style={{
+            width:'100%', padding:'10px 12px',
+            background: isDark?'rgba(15,17,23,.6)':'rgba(0,0,0,.03)',
+            border:`1px solid ${isDark?'rgba(255,255,255,.1)':'rgba(0,0,0,.1)'}`,
+            borderRadius:8, color: isDark?'#E8EAF0':'#0F1117',
+            fontSize:12, fontFamily:'inherit', resize:'vertical',
+            boxSizing:'border-box', outline:'none'
+          }}/>
+          <div style={{fontSize:10, color:isDark?'#6B7280':'#9B9B9B', marginTop:6, lineHeight:1.4}}>
+            Usá *texto* para destacar en naranja. Saltos de línea con enter.
+          </div>
+          <div style={{fontSize:11, fontWeight:700, color:isDark?'#8892A4':'#6B7280', marginTop:12, marginBottom:6}}>Presets:</div>
+          <div style={{display:'flex', flexDirection:'column', gap:4}}>
+            {headlinePresets.map((h,i) => (
+              <button key={i} onClick={()=>setHeadline(h)} style={{
+                textAlign:'left', padding:'6px 10px',
+                background: 'transparent',
+                border:`1px solid ${isDark?'rgba(255,255,255,.08)':'rgba(0,0,0,.08)'}`,
+                borderRadius:6, cursor:'pointer',
+                color: isDark?'#8892A4':'#5A6170',
+                fontSize:11, lineHeight:1.3,
+                fontFamily:'inherit'
+              }}>{h.replace(/\*/g,'').replace(/\n/g,' · ')}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.TweaksPanel = TweaksPanel;
+</script>
+
+<!-- ═══════════════════════════════════════════════
+     App Entry Point
+════════════════════════════════════════════════ -->
+<script type="text/babel">
+const TWEAK_DEFAULTS = {
+  "variant": "split",
+  "headline": "Fichaje facial *inteligente*\npara tu organización",
+  "theme": "light"
+};
+
+function App() {
+  const [variant, setVariant] = React.useState(TWEAK_DEFAULTS.variant);
+  const [headline, setHeadline] = React.useState(TWEAK_DEFAULTS.headline);
+  const [isDark, setIsDark] = React.useState(TWEAK_DEFAULTS.theme !== 'light');
+  const [tweaksVisible, setTweaksVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    document.body.style.background = isDark ? '#0F1117' : '#FAFAFB';
+    document.body.style.color = isDark ? '#E8EAF0' : '#0F1117';
+  }, [isDark]);
+
+  const HeroComponent = {
+    split: HeroSplit,
+    center: HeroCenter,
+    editorial: HeroEditorial
+  }[variant] || HeroSplit;
+
+  return (
+    <div>
+      <TKNav isDark={isDark} onToggleTheme={()=>setIsDark(d=>!d)}/>
+      <HeroComponent isDark={isDark} headline={headline}/>
+      <PainPoints isDark={isDark}/>
+      <Environments isDark={isDark}/>
+      <HowItWorks isDark={isDark}/>
+      <AgendarForm isDark={isDark}/>
+      <Footer isDark={isDark}/>
+
+      {/* Tweaks toggle button */}
+      <button
+        onClick={()=>setTweaksVisible(v=>!v)}
+        title="Tweaks"
+        style={{
+          position:'fixed', bottom:20, left:20, zIndex:200,
+          width:44, height:44, borderRadius:'50%',
+          background: isDark?'rgba(22,27,38,.95)':'rgba(255,255,255,.98)',
+          border:`1px solid ${isDark?'rgba(255,255,255,.12)':'rgba(0,0,0,.12)'}`,
+          boxShadow:'0 8px 24px rgba(0,0,0,.25)',
+          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          color: tweaksVisible ? '#F5831F' : (isDark?'#8892A4':'#6B7280'),
+          fontSize:18, backdropFilter:'blur(12px)'
+        }}
+      >⚙</button>
+
+      <TweaksPanel
+        visible={tweaksVisible}
+        variant={variant} setVariant={setVariant}
+        headline={headline} setHeadline={setHeadline}
+        isDark={isDark} setIsDark={setIsDark}
+      />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
