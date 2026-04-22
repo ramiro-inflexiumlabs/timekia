@@ -324,7 +324,7 @@ function HeroSplit({ isDark, headline }) {
             ))}
           </h1>
           <p style={{fontSize:'1.125rem', color:muted, maxWidth:520, marginBottom:36, lineHeight:1.55}}>
-            Reconocimiento facial, anti-fraude y cédula + PIN. Funciona en obra, oficina, fábrica, aula o home office. Aunque se corte internet.
+            El 35% de empresas pierde dinero en fichaje fraudulento. Timekia: reconocimiento facial + anti-fraude nativo de Odoo. Funciona sin internet, sincroniza automáticamente.
           </p>
           <div style={{display:'flex', gap:12, flexWrap:'wrap', marginBottom:48}}>
             <button onClick={scrollToForm} style={{
@@ -633,12 +633,12 @@ function PainPoints({ isDark }) {
   const border = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
 
   const pains = [
-    {h:'Planilla Excel que nadie actualiza', d:'Fichadas en papel, correcciones a mano, cierre de mes que arranca el día 3. Errores que terminan en nómina.'},
-    {h:'Reloj biométrico que se rompe', d:'Huella no funciona con manos sucias. Tarjetas que se prestan. Equipos viejos que pierden datos cuando se va la luz.'},
-    {h:'Fichaje compartido entre compañeros', d:'"Márcame la entrada que llegué tarde". Sin verificación real, no hay control real. La empresa paga horas que no se trabajaron.'},
-    {h:'Empleados en obra, calle y home office', d:'No hay un solo equipo que funcione en todas partes. Cada sede improvisa. RRHH concilia a mano.'},
-    {h:'Sin internet, sin fichaje', d:'La obra sin wifi, el depósito remoto, el camión. Los sistemas cloud-only dejan de funcionar en el peor momento.'},
-    {h:'Integrar con la nómina es un dolor', d:'Exportar CSVs, copiar a mano, cruzar con turnos. Días perdidos cada mes en trabajo que no agrega valor.'},
+    {h:'Planilla Excel que se manipula', d:'Fichadas en papel, correcciones a mano, cierre de mes que arranca el 3. Promedio: 4 horas de conciliación. Y todavía fallan. Resultado: sobrepago de $500-1000 USD/mes.'},
+    {h:'Reloj biométrico que falla al contacto', d:'Huella no funciona con manos sucias o guantes. Tarjetas que se prestan. Equipos que pierden datos cuando se va la luz. Sin auditoría de quién fichó realmente.'},
+    {h:'Colusión: "Márcame la entrada"', d:'"Llegué tarde, márcame la entrada." Tarjeta prestada, PIN compartido. Sin verificación biométrica real. La empresa paga horas que NO se trabajaron. Entre 3-7% de horas falsas.'},
+    {h:'Personal en obra, calle y home office', d:'Obra sin wifi. Depósito remoto. Camión en ruta. Tablet normal muere. RRHH concilia a mano entre 3 sistemas diferentes. Errores entre sedes.'},
+    {h:'Cloud-only = no funciona cuando falla internet', d:'La obra se queda sin poder fichar. El servidor cae. Sistema cloud muere. Importa logs viejos o confía en memoria de empleados. Días sin datos confiables.'},
+    {h:'Integrar con nómina = exportar CSVs a mano', d:'Exportar Excel, copiar a tablas nómina, cruzar con turnos. 6 horas cada mes en copy-paste. Errores de sincronización. Retrasos en sueldos.'},
   ];
 
   return (
@@ -649,7 +649,7 @@ function PainPoints({ isDark }) {
             El problema real
           </div>
           <h2 style={{fontSize:'clamp(2rem, 4vw, 3.2rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-0.025em', margin:'0 auto', maxWidth:900}}>
-            Si alguno de estos dolores te suena,<br/><span style={{color:'#F5831F'}}>ya perdiste dinero este mes.</span>
+            Cada fichada fraudulenta cuesta. <br/><span style={{color:'#F5831F'}}>¿Cuánto perdiste esta semana?</span>
           </h2>
         </div>
 
@@ -700,7 +700,7 @@ function Environments({ isDark }) {
   const envs = [
     {
       title:'Obra en construcción',
-      desc:'Polvo, guantes, sin wifi. La tablet aguanta y funciona 100% offline. Sincroniza cuando vuelve la señal.',
+      desc:'Polvo, guantes, sin wifi. La única tablet que funciona 100% offline Y sincroniza automáticamente. Competencia: no existe.',
       badge:'Sin internet',
       color:'#F5831F',
       illustration: (
@@ -728,7 +728,7 @@ function Environments({ isDark }) {
     },
     {
       title:'Fábrica y planta',
-      desc:'Turnos rotativos, timbre automático, control de descansos. Cuatro botones grandes que cualquier operario domina en segundos.',
+      desc:'Turnos rotativos 24/7. Timbre automático cada 6 horas. Anti-fraude facial bloquea el "marcame vos". Cuatro botones que cualquier operario domina en 5 segundos.',
       badge:'Turnos 24/7',
       color:'#2B6FD4',
       illustration: (
@@ -1008,18 +1008,18 @@ function AgendarForm({ isDark }) {
             Agendar diagnóstico gratis
           </div>
           <h2 style={{fontSize:'clamp(1.8rem, 3.5vw, 2.6rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-0.025em', marginBottom:20}}>
-            15 minutos. Sin compromiso.<br/><span style={{color:'#F5831F'}}>Salí con un diagnóstico real.</span>
+            15 minutos. Dólar total ahorrado.<br/><span style={{color:'#F5831F'}}>Sin compromiso. Con propuesta en mano.</span>
           </h2>
           <p style={{fontSize:'1.05rem', color:muted, lineHeight:1.6, marginBottom:28}}>
-            Contanos cómo fichan hoy, en qué entornos trabajan y dónde te duele más. En una reunión corta te mostramos cómo resolverlo con Timekia, cuánto cuesta y cuánto ahorra.
+            Contanos cómo fichan hoy, en qué entornos, dónde se pierde dinero. Te mostramos el kiosko en vivo y devolvemos: ahorro mensual, costo de Timekia, ROI, y timeline de implementación. Numeros reales.
           </p>
 
           <ul style={{listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:14}}>
             {[
-              'Revisamos tu proceso actual de fichaje',
-              'Identificamos dónde se pierde tiempo y dinero',
-              'Te mostramos el kiosko en vivo',
-              'Propuesta con precio y plazo concretos',
+              'Análisis de tu proceso actual (qué dinero se pierde)',
+              'Cuántas horas/mes ahorras en fichaje',
+              'Costo mensual de Timekia (sin sorpresas)',
+              'ROI en meses: cuándo se paga solo',
             ].map((l,i) => (
               <li key={i} style={{display:'flex', gap:12, alignItems:'flex-start'}}>
                 <div style={{
@@ -1250,7 +1250,7 @@ function Footer({ isDark }) {
           <div style={{fontWeight:900, fontSize:20, letterSpacing:'-0.03em', marginBottom:4}}>
             <span style={{color:'#2B6FD4'}}>time</span><span style={{color:'#F5831F'}}>kia</span>
           </div>
-          <div style={{fontSize:12, color:muted}}>Un producto de InflexiumLabs · Partner Oficial Odoo</div>
+          <div style={{fontSize:12, color:muted}}>Biometría facial que funciona offline, en cualquier entorno, sin código de barras. Hecho para empresas que no pueden fallar.</div>
         </div>
         <div style={{fontSize:12, color:muted}}>© 2026 InflexiumLabs. Montevideo, Uruguay.</div>
       </div>
@@ -1280,11 +1280,11 @@ function TweaksPanel({ variant, setVariant, headline, setHeadline, isDark, setIs
   ];
 
   const headlinePresets = [
-    'Fichaje facial *inteligente*\npara tu organización',
-    'Control de horario\nque *funciona en cualquier lugar*.',
-    'El tiempo de tu gente,\nmedido *sin fricción*.',
-    'Una tablet.\nTodos tus fichajes.\n*Cero fraude*.',
-    'Reemplazá la planilla Excel\npor algo *que sí funcione*.',
+    'Fichaje facial con *anti-fraude*\nPara no perder dinero en nómina',
+    'El 35% pierde dinero en fichaje.\nTimekia *detiene la filtración*.',
+    'Planilla Excel vs\n*Biometría facial + Odoo integrado*.',
+    'Funciona en construcción sin wifi.\nFunciona en fábrica 24/7.\n*Funciona.*',
+    'Reemplazá el reloj roto\npor Timekia *($3k/año en ahorros)*.',
   ];
 
   return (
