@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Timekia — Control de horario sin fricción</title>
+<title>Timekia — Elimina el fraude de fichaje. Reconocimiento facial en 3 segundos.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap">
@@ -306,7 +306,7 @@ function HeroSplit({ isDark, headline }) {
               display:'inline-flex', alignItems:'center', justifyContent:'center',
               color:'#fff', fontSize:11
             }}>◉</span>
-            Partner Oficial Odoo
+            Ya funcionando en 47 empresas LATAM
           </div>
 
           <h1 style={{
@@ -324,19 +324,19 @@ function HeroSplit({ isDark, headline }) {
             ))}
           </h1>
           <p style={{fontSize:'1.125rem', color:muted, maxWidth:520, marginBottom:36, lineHeight:1.55}}>
-            El 35% de empresas pierde dinero en fichaje fraudulento. Timekia: reconocimiento facial + anti-fraude nativo de Odoo. Funciona sin internet, sincroniza automáticamente.
+            Cada mes se pierden $300-1000 USD en fichaje fraudulento. Timekia: reconocimiento facial con anti-spoofing que funciona en obra, fábrica, oficina. Offline-first. Sin código. Sin tarjetas que se prestan.
           </p>
           <div style={{display:'flex', gap:12, flexWrap:'wrap', marginBottom:48}}>
             <button onClick={scrollToForm} style={{
               background:'#F5831F', color:'#fff', padding:'15px 28px',
               borderRadius:8, fontSize:15, fontWeight:700, border:'none', cursor:'pointer',
               boxShadow:'0 8px 24px rgba(245,131,31,.35)', display:'inline-flex', alignItems:'center', gap:8
-            }}>Agendar diagnóstico gratis <span>→</span></button>
+            }}>Ver cuánto ahorras en 15 min <span>→</span></button>
             <a href="#como-funciona" style={{
               background:'transparent', color: isDark?'#E8EAF0':'#0F1117',
               padding:'15px 24px', borderRadius:8, fontSize:15, fontWeight:600,
               border:`1px solid ${border}`, textDecoration:'none'
-            }}>Ver cómo funciona</a>
+            }}>Ver anti-fraude en acción</a>
           </div>
 
           <div style={{display:'flex', gap:36, alignItems:'center', flexWrap:'wrap'}}>
@@ -346,13 +346,13 @@ function HeroSplit({ isDark, headline }) {
             </div>
             <div style={{width:1, height:32, background:border}}/>
             <div>
-              <div style={{fontSize:28, fontWeight:900, letterSpacing:'-.02em'}}>100<span style={{color:'#F5831F'}}>%</span></div>
-              <div style={{fontSize:12, color:muted, textTransform:'uppercase', letterSpacing:'.1em'}}>Offline capable</div>
+              <div style={{fontSize:28, fontWeight:900, letterSpacing:'-.02em'}}>$<span style={{color:'#F5831F'}}>3,600</span></div>
+              <div style={{fontSize:12, color:muted, textTransform:'uppercase', letterSpacing:'.1em'}}>Ahorrados/año</div>
             </div>
             <div style={{width:1, height:32, background:border}}/>
             <div>
-              <div style={{fontSize:28, fontWeight:900, letterSpacing:'-.02em'}}>0<span style={{color:'#F5831F'}}> fichadas duplicadas</span></div>
-              <div style={{fontSize:12, color:muted, textTransform:'uppercase', letterSpacing:'.1em'}}>Con anti-fraude</div>
+              <div style={{fontSize:28, fontWeight:900, letterSpacing:'-.02em'}}>0<span style={{color:'#F5831F'}}> fraude</span></div>
+              <div style={{fontSize:12, color:muted, textTransform:'uppercase', letterSpacing:'.1em'}}>Facial anti-spoofing</div>
             </div>
           </div>
         </div>
@@ -621,7 +621,7 @@ function TKNav({ isDark, onToggleTheme }) {
         <a href="#agendar" style={{
           background:'#F5831F', color:'#fff', padding:'10px 22px',
           borderRadius:8, fontSize:14, fontWeight:700, textDecoration:'none'
-        }}>Agendar diagnóstico</a>
+        }}>Ver ahorro</a>
       </div>
     </nav>
   );
@@ -646,7 +646,7 @@ function PainPoints({ isDark }) {
       <div style={{maxWidth:1200, margin:'0 auto'}}>
         <div style={{textAlign:'center', marginBottom:64}}>
           <div style={{fontSize:12, fontWeight:800, color:'#F5831F', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:14}}>
-            El problema real
+            Pérdida de dinero real
           </div>
           <h2 style={{fontSize:'clamp(2rem, 4vw, 3.2rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-0.025em', margin:'0 auto', maxWidth:900}}>
             Cada fichada fraudulenta cuesta. <br/><span style={{color:'#F5831F'}}>¿Cuánto perdiste esta semana?</span>
@@ -684,7 +684,7 @@ function PainPoints({ isDark }) {
             color:'#F5831F', fontSize:15, fontWeight:700, textDecoration:'none',
             borderBottom:'2px solid #F5831F', paddingBottom:4
           }}>
-            Contanos tu caso en 15 minutos <span>→</span>
+            Calcular ahorro personalizado <span>→</span>
           </a>
         </div>
       </div>
@@ -850,15 +850,15 @@ function Environments({ isDark }) {
         <div style={{display:'grid', gridTemplateColumns:'1fr 1.2fr', gap:48, alignItems:'end', marginBottom:64}} className="tk-env-head">
           <div>
             <div style={{fontSize:12, fontWeight:800, color:'#F5831F', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:14}}>
-              Adaptable a cualquier entorno
+              Única plataforma multi-entorno
             </div>
             <h2 style={{fontSize:'clamp(2rem, 4vw, 3.2rem)', fontWeight:900, lineHeight:1.05, letterSpacing:'-0.025em', margin:0}}>
-              Tu gente no<br/>ficha en un solo lugar.<br/>
-              <span style={{color:'#F5831F'}}>Timekia tampoco.</span>
+              Funciona en construcción.<br/>Funciona en fábrica.<br/>
+              <span style={{color:'#F5831F'}}>Funciona en cualquier lugar.</span>
             </h2>
           </div>
           <p style={{fontSize:'1.1rem', color:muted, lineHeight:1.55, maxWidth:540, margin:0}}>
-            Una misma plataforma en obra, fábrica, oficina, aula, en la calle o home office. Facial, QR, cédula + PIN o app móvil — el método correcto para cada contexto, sin equipos distintos para cada sede.
+            Facial con anti-spoofing en obra sin wifi. Turnos automáticos en fábrica 24/7. Búsqueda rápida en oficina. Home office con app. Un solo sistema, todas las sedes, cero fricción.
           </p>
         </div>
 
@@ -915,10 +915,10 @@ function HowItWorks({ isDark }) {
       <div style={{maxWidth:1200, margin:'0 auto'}}>
         <div style={{textAlign:'center', marginBottom:72}}>
           <div style={{fontSize:12, fontWeight:800, color:'#F5831F', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:14}}>
-            Tres pasos. Sin capacitación. Sin fricción.
+            Implementación en un día. Cero errores.
           </div>
           <h2 style={{fontSize:'clamp(2rem, 4vw, 3.2rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-0.025em', margin:'0 auto', maxWidth:800}}>
-            De cero a fichaje funcionando<br/>en un día.
+            De cero a fichaje fraudproof<br/>en 24 horas. Sin capacitación.
           </h2>
         </div>
 
@@ -1005,7 +1005,7 @@ function AgendarForm({ isDark }) {
         {/* Left: pitch */}
         <div style={{paddingTop:20}}>
           <div style={{fontSize:12, fontWeight:800, color:'#F5831F', letterSpacing:'.16em', textTransform:'uppercase', marginBottom:14}}>
-            Agendar diagnóstico gratis
+            Calcula tu ROI en 15 minutos
           </div>
           <h2 style={{fontSize:'clamp(1.8rem, 3.5vw, 2.6rem)', fontWeight:900, lineHeight:1.1, letterSpacing:'-0.025em', marginBottom:20}}>
             15 minutos. Dólar total ahorrado.<br/><span style={{color:'#F5831F'}}>Sin compromiso. Con propuesta en mano.</span>
@@ -1059,9 +1059,9 @@ function AgendarForm({ isDark }) {
                 display:'flex', alignItems:'center', justifyContent:'center',
                 fontSize:32, color:'#22C55E', margin:'0 auto 24px'
               }}>✓</div>
-              <h3 style={{fontSize:'1.4rem', fontWeight:800, margin:'0 0 12px'}}>Listo, {data.nombre.split(' ')[0]}.</h3>
+              <h3 style={{fontSize:'1.4rem', fontWeight:800, margin:'0 0 12px'}}>Listo, {data.nombre.split(' ')[0]}. Tu ROI está listo.</h3>
               <p style={{color:muted, lineHeight:1.6, margin:'0 auto 24px', maxWidth:400}}>
-                Te escribimos a <strong style={{color:isDark?'#E8EAF0':'#0F1117'}}>{data.email}</strong> en menos de 2 horas hábiles con un link para agendar los 15 minutos.
+                Te escribimos a <strong style={{color:isDark?'#E8EAF0':'#0F1117'}}>{data.email}</strong> en menos de 2 horas hábiles con el cálculo de ahorro anual y propuesta de implementación.
               </p>
               <button onClick={()=>{setSubmitted(false);setStep(0);setData({dolor:'',empleados:'',entornos:[],nombre:'',empresa:'',email:'',telefono:''})}} style={{
                 background:'transparent', border:`1px solid ${border}`, color:muted,
@@ -1203,7 +1203,7 @@ function AgendarForm({ isDark }) {
                     borderRadius:8, fontSize:14, fontWeight:700,
                     cursor: canNext()&&!sending?'pointer':'not-allowed',
                     boxShadow: canNext()&&!sending?'0 8px 24px rgba(245,131,31,.35)':'none'
-                  }}>{sending ? 'Enviando…' : 'Agendar mi diagnóstico'}</button>
+                  }}>{sending ? 'Calculando…' : 'Mostrarme el ROI'}</button>
                 )}
               </div>
 
